@@ -10,10 +10,10 @@ party license terms as specified in this software, and such portions are
 excluded from the preceding copyright notice of NimbeLink Corp.
 """
 
-import nimbelink.cell.at as at
-import nimbelink.cell.devkit as devkit
-import nimbelink.cell.modem as modem
-import nimbelink.cell.network as network
+from . import at
+from . import devkit
+from . import modem
+from . import network
 
 __all__ = [
     "at",
