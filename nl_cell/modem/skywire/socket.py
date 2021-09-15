@@ -34,10 +34,10 @@ class Socket(object):
 
         def create(
             self,
-            family = socket.AF_INET,
-            type = socket.SOCK_STREAM,
-            proto = 0,
-            fileno = None
+            family: int = socket.AF_INET,
+            type: int = socket.SOCK_STREAM,
+            proto: int = 0,
+            fileno: int = None
         ) -> "Socket.Instance":
             """Creates a new socket
 
