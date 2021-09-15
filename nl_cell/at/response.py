@@ -10,7 +10,9 @@ party license terms as specified in this software, and such portions are
 excluded from the preceding copyright notice of NimbeLink Corp.
 """
 
-from nimbelink.cell.at.result import Result
+import typing
+
+from .result import Result
 
 class Response(object):
     """A response to an AT command
@@ -109,6 +111,22 @@ class Response(object):
         string += f"{self.result}"
 
         return string
+
+    def __contains__(self, item: typing.Union[str, bytes]) -> bool:
+        """Checks if the response contains a string
+
+        :param self:
+            Self
+        :param item:
+            The string to check for
+
+        :return True:
+            Response contains the string
+        :return False:
+            Response does not contain the string
+        """
+
+        return item in self.output
 
     @staticmethod
     def _filterCommand(command, output):
