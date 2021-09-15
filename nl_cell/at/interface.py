@@ -258,7 +258,7 @@ class Interface(object):
             # There appear to be issues with readline() that aren't strictly
             # documented, where it's ending and returning a non-empty buffer
             # that *doesn't* contain a newline in it.
-            if self._buffer.rfind(b'\n') < 0:
+            if self._buffer.rfind(b"\n") < 0:
                 continue
 
             # We need to clear our buffer before yielding, as we can't guarantee
@@ -291,6 +291,37 @@ class Interface(object):
             raise Interface.CommError(f"Failed to send {ascii(data.decode())}")
 
         self._logger.debug(f"Wrote {ascii(data.decode())}")
+
+    def _readRaw(self, size: int, timeout = None) -> bytes:
+        """Read raw bytes from the serial device connected to the modem
+
+        Less data may be returned than desired.
+
+        :param self:
+            Self
+        :param size:
+            The amount of data to attempt to read from the serial port
+        :param timeout:
+            The longest we should wait for more data if we don't have enough
+
+        :return bytes:
+            The data that was read from the serial port
+        """
+
+        # If the user didn't specify a timeout, just use the default timeout
+        if timeout is None:
+            timeout = Interface.DefaultTimeout
+
+        # Set the read timeout of the device to the desired length
+        self.readTimeout = timeout
+
+        # Attempt to read the desired number of bytes from the serial port
+        data: bytes = self._device.read(size)
+
+        self._logger.debug(f"Read {ascii(data.decode())}")
+
+        # Return the bytes that were read, even if there are less than desired
+        return data
 
     def _beginCommand(self, command):
         """Sends a command to the AT interface without expecting a response
@@ -359,6 +390,51 @@ class Interface(object):
                 return response
 
         raise Interface.CommError("Timeout waiting for response")
+
+    def waitForPattern(self, pattern: typing.Pattern, timeout: float = None) -> bool:
+        """Waits until a desired string is seen in the output from the device
+
+        This method reads characters one at a time from the serial port and
+        checks whether or not a match for the regular expression pattern exists
+        in the read data.
+
+        :param self:
+            Self
+        :param pattern:
+            The regular expression pattern to wait for
+        :param timeout:
+            How long to wait for a given pattern
+
+        :return bool:
+            Whether or not the desired pattern was produced in the given time
+        """
+
+        # Ensure timeout is set to default if unspecified
+        if timeout is None:
+            timeout = Interface.DefaultTimeout
+
+        buffer: bytearray = bytearray()
+
+        begin: float = time.time()
+
+        # While we haven't ran out of time, search for the desired string in the
+        # output
+        while begin + timeout > time.time():
+            # Check if the buffer has a match for the pattern anywhere
+            #
+            # If the buffer does, then we are done.
+            if re.search(pattern, buffer.decode()):
+                return True
+
+            # Attempt to read a single byte from the serial port
+            data: bytes = self._readRaw(1, timeout)
+
+            # If we read a byte, append it to the data we previously read
+            if data:
+                buffer.append(data[0])
+
+        # Ran out of time, so return failure
+        return False
 
     def sendCommand(self, command, timeout = None):
         """Sends a command to the AT interface
