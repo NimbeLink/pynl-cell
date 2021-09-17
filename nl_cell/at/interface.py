@@ -14,8 +14,9 @@ import logging
 import re
 import serial
 import time
+import typing
 
-from nimbelink.cell.at.response import Response
+from .response import Response
 
 class Interface(object):
     """Python class for sending and receiving commands from embedded cellular
@@ -28,13 +29,13 @@ class Interface(object):
 
         pass
 
-    DefaultTimeout = 5.0
+    DefaultTimeout: float = 5.0
     """A default timeout for interacting with a modem"""
 
-    SendNewLine = "\r"
+    SendNewLine: str = "\r"
     """The line engins to use to send commands"""
 
-    NewLine = Response.DefaultNewLine
+    NewLine: str = Response.DefaultNewLine
     """The line endings to expect"""
 
     def __init__(self, *args, **kwargs):
@@ -62,9 +63,9 @@ class Interface(object):
 
         self._buffer = bytearray()
 
-        self.writeTimeout = 0
+        self.writeTimeout: float = 0
 
-        # Clear out to begin with
+        # Clear out device's buffers to begin with
         self._clear()
 
     @property
@@ -81,7 +82,7 @@ class Interface(object):
 
         return self._device
 
-    def _clear(self):
+    def _clear(self) -> None:
         """Clears our device's input/output buffers
 
         :param self:
@@ -98,26 +99,26 @@ class Interface(object):
                 break
 
     @property
-    def readTimeout(self):
+    def readTimeout(self) -> float:
         """Gets our serial port's read timeout
 
         :param self:
             Self
 
-        :return Integer:
+        :return float:
             Our serial port's read timeout
         """
 
         return self._device.timeout
 
     @readTimeout.setter
-    def readTimeout(self, timeout):
+    def readTimeout(self, timeout: float) -> None:
         """Sets our serial port's read timeout
 
         :param self:
             Self
         :param timeout:
-            The timeout to set
+            The timeout to set, in seconds
 
         :return none:
         """
@@ -128,26 +129,26 @@ class Interface(object):
             self._device.timeout = timeout
 
     @property
-    def writeTimeout(self):
+    def writeTimeout(self) -> float:
         """Gets our serial port's write timeout
 
         :param self:
             Self
 
-        :return Integer:
-            Our serial port's write timeout
+        :return float:
+            Our serial port's write timeout, in seconds
         """
 
         return self._device.write_timeout
 
     @writeTimeout.setter
-    def writeTimeout(self, timeout):
+    def writeTimeout(self, timeout: float) -> None:
         """Sets our serial port's write timeout
 
         :param self:
             Self
         :param timeout:
-            The timeout to set
+            The timeout to set, in seconds
 
         :return none:
         """
@@ -158,7 +159,7 @@ class Interface(object):
             self._device.write_timeout = timeout
 
     @property
-    def baudRate(self):
+    def baudRate(self) -> int:
         """Gets our serial port's baud rate
 
         :param self:
@@ -171,7 +172,7 @@ class Interface(object):
         return self._device.baudrate
 
     @baudRate.setter
-    def baudRate(self, baudRate):
+    def baudRate(self, baudRate: int):
         """Sets our serial port's baud rate
 
         :param self:
@@ -185,7 +186,7 @@ class Interface(object):
         self._device.baudrate = baudRate
 
     @property
-    def flowControl(self):
+    def flowControl(self) -> bool:
         """Gets our serial port's flow control
 
         :param self:
@@ -198,7 +199,7 @@ class Interface(object):
         return self._device.baudrate
 
     @flowControl.setter
-    def flowControl(self, flowControl):
+    def flowControl(self, flowControl: bool) -> None:
         """Sets our serial port's flow control
 
         :param self:
@@ -211,7 +212,7 @@ class Interface(object):
 
         self._device.rtscts = flowControl
 
-    def _getLines(self, timeout = None):
+    def _getLines(self, timeout: float = None) -> typing.Generator[str, None, None]:
         """Gets lines from the device
 
         Because this function uses 'yield' to return lines, the provided timeout
@@ -237,7 +238,7 @@ class Interface(object):
         self.readTimeout = timeout
 
         # Allow a zero-second timeout to still potentially read input
-        startTime = None
+        startTime: float = None
 
         while True:
             now = time.time()
@@ -258,7 +259,7 @@ class Interface(object):
             # There appear to be issues with readline() that aren't strictly
             # documented, where it's ending and returning a non-empty buffer
             # that *doesn't* contain a newline in it.
-            if self._buffer.rfind(b'\n') < 0:
+            if self._buffer.rfind(b"\n") < 0:
                 continue
 
             # We need to clear our buffer before yielding, as we can't guarantee
@@ -273,7 +274,7 @@ class Interface(object):
             # Got another line
             yield buffer.decode()
 
-    def _writeRaw(self, data):
+    def _writeRaw(self, data: typing.Union[bytes, bytearray]) -> None:
         """Writes raw data
 
         :param self:
@@ -292,7 +293,38 @@ class Interface(object):
 
         self._logger.debug(f"Wrote {ascii(data.decode())}")
 
-    def _beginCommand(self, command):
+    def _readRaw(self, size: int, timeout: float = None) -> bytes:
+        """Read raw bytes from the serial device connected to the modem
+
+        Less data may be returned than desired.
+
+        :param self:
+            Self
+        :param size:
+            The amount of data to attempt to read from the serial port
+        :param timeout:
+            The longest we should wait for more data if we don't have enough
+
+        :return bytes:
+            The data that was read from the serial port
+        """
+
+        # If the user didn't specify a timeout, just use the default timeout
+        if timeout is None:
+            timeout = Interface.DefaultTimeout
+
+        # Set the read timeout of the device to the desired length
+        self.readTimeout = timeout
+
+        # Attempt to read the desired number of bytes from the serial port
+        data: bytes = self._device.read(size)
+
+        self._logger.debug(f"Read {ascii(data.decode())}")
+
+        # Return the bytes that were read, even if there are less than desired
+        return data
+
+    def _beginCommand(self, command: str) -> None:
         """Sends a command to the AT interface without expecting a response
 
         :param command:
@@ -324,7 +356,7 @@ class Interface(object):
         # Write the command
         self._writeRaw(command.encode())
 
-    def _waitForResponse(self, command, timeout = None):
+    def _waitForResponse(self, command, timeout: float = None) -> Response:
         """Waits for a certain response
 
         :param self:
@@ -360,7 +392,52 @@ class Interface(object):
 
         raise Interface.CommError("Timeout waiting for response")
 
-    def sendCommand(self, command, timeout = None):
+    def waitForPattern(self, pattern: typing.Pattern, timeout: float = None) -> bool:
+        """Waits until a desired string is seen in the output from the device
+
+        This method reads characters one at a time from the serial port and
+        checks whether or not a match for the regular expression pattern exists
+        in the read data.
+
+        :param self:
+            Self
+        :param pattern:
+            The regular expression pattern to wait for
+        :param timeout:
+            How long to wait for a given pattern
+
+        :return bool:
+            Whether or not the desired pattern was produced in the given time
+        """
+
+        # Ensure timeout is set to default if unspecified
+        if timeout is None:
+            timeout = Interface.DefaultTimeout
+
+        buffer: bytearray = bytearray()
+
+        begin: float = time.time()
+
+        # While we haven't ran out of time, search for the desired string in the
+        # output
+        while begin + timeout > time.time():
+            # Check if the buffer has a match for the pattern anywhere
+            #
+            # If the buffer does, then we are done.
+            if re.search(pattern, buffer.decode()):
+                return True
+
+            # Attempt to read a single byte from the serial port
+            data: bytes = self._readRaw(1, timeout)
+
+            # If we read a byte, append it to the data we previously read
+            if data:
+                buffer.append(data[0])
+
+        # Ran out of time, so return failure
+        return False
+
+    def sendCommand(self, command: str, timeout: float = None) -> Response:
         """Sends a command to the AT interface
 
         :param self:
@@ -386,7 +463,7 @@ class Interface(object):
         # Wait for a response
         return self._waitForResponse(command = command, timeout = timeout)
 
-    def getUrc(self, pattern = None, timeout = None):
+    def getUrc(self, pattern: str = None, timeout: float = None) -> str:
         """Waits for an asynchronous output
 
         The pattern string can be a regular expression used to filter out
@@ -421,7 +498,7 @@ class Interface(object):
         # We didn't get the URC in time
         raise Interface.CommError(f"Failed to receive URC matching '{pattern}'")
 
-    def getUrcs(self, pattern = None, timeout = None):
+    def getUrcs(self, pattern: str = None, timeout: float = None) -> typing.Generator[str, None, None]:
         """Waits for multiple asynchronous output
 
         If a timeout is specified, it will be used for each individual URC as if
@@ -454,7 +531,7 @@ class Interface(object):
             except Interface.CommError:
                 break
 
-    def startPrompt(self, *args, **kwargs):
+    def startPrompt(self, *args, **kwargs) -> "Interface.Prompt":
         """Starts a prompt command
 
         :param self:
@@ -474,7 +551,7 @@ class Interface(object):
         """A prompt for sending dynamic data in an AT command
         """
 
-        def __init__(self, interface, dynamic):
+        def __init__(self, interface: "Interface", dynamic: bool):
             """Creates a new prompt
 
             :param self:
@@ -487,10 +564,10 @@ class Interface(object):
             :return none:
             """
 
-            self._interface = interface
-            self._dynamic = dynamic
+            self._interface: "Interface" = interface
+            self._dynamic: bool = dynamic
 
-            self._command = None
+            self._command: str = None
 
         def __enter__(self):
             """Enters the prompt context
@@ -521,7 +598,7 @@ class Interface(object):
 
             pass
 
-        def startCommand(self, command):
+        def startCommand(self, command: str) -> None:
             """Starts a dynamic command
 
             :param self:
@@ -544,7 +621,7 @@ class Interface(object):
             # Send the command
             self._interface._beginCommand(command = command)
 
-        def writeData(self, data):
+        def writeData(self, data: typing.Union[bytes, bytearray]) -> None:
             """Writes command data
 
             :param self:
@@ -560,7 +637,7 @@ class Interface(object):
 
             self._interface._writeRaw(data)
 
-        def finish(self, timeout = None):
+        def finish(self, timeout: float = None) -> Response:
             """Finishes the prompt
 
             :param self:

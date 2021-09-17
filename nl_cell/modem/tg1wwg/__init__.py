@@ -1,5 +1,5 @@
 """
-The NimbeLink modem package
+A Skywire NL-SW-LTE-TG1WWG modem
 
 (C) NimbeLink Corp. 2021
 
@@ -10,20 +10,12 @@ party license terms as specified in this software, and such portions are
 excluded from the preceding copyright notice of NimbeLink Corp.
 """
 
-from .exception import Error
-from .exception import AtError
+from .modem import TG1WWG
 
-from . import skywire
-from . import nano
-from . import src7611
-from . import tg1wwg
+from .socket import Socket
 
 __all__ = [
-    "Error",
-    "AtError",
+    "TG1WWG",
 
-    "skywire",
-    "nano",
-    "src7611",
-    "tg1wwg",
+    "Socket",
 ]

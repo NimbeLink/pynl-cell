@@ -1,5 +1,5 @@
 """
-The NimbeLink modem package
+The Sierra Wireless 7611
 
 (C) NimbeLink Corp. 2021
 
@@ -10,20 +10,12 @@ party license terms as specified in this software, and such portions are
 excluded from the preceding copyright notice of NimbeLink Corp.
 """
 
-from .exception import Error
-from .exception import AtError
+from .modem import SRC7611
 
-from . import skywire
-from . import nano
-from . import src7611
-from . import tg1wwg
+from .socket import Socket
 
 __all__ = [
-    "Error",
-    "AtError",
+    "SRC7611",
 
-    "skywire",
-    "nano",
-    "src7611",
-    "tg1wwg",
+    "Socket",
 ]
