@@ -1,5 +1,5 @@
 """
-The NimbeLink cellular package
+The NimbeLink devkit package
 
 (C) NimbeLink Corp. 2021
 
@@ -10,14 +10,13 @@ party license terms as specified in this software, and such portions are
 excluded from the preceding copyright notice of NimbeLink Corp.
 """
 
-import nimbelink.cell.at as at
-import nimbelink.cell.devkit as devkit
-import nimbelink.cell.modem as modem
-import nimbelink.cell.network as network
-
 __all__ = [
-    "at",
-    "devkit",
-    "modem",
-    "network"
+    "Host",
 ]
+# Conditional imports
+try:
+    from nimbelink.devkits.NLSWN_RPI import NLSWN_RPI
+    __all__.append("NLSWN_RPI")
+except ModuleNotFoundError:
+    # Raspberry Pi Host unavailable
+    pass
