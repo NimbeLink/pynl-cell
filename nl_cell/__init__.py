@@ -10,11 +10,6 @@ party license terms as specified in this software, and such portions are
 excluded from the preceding copyright notice of NimbeLink Corp.
 """
 
-from . import at
-from . import devkit
-from . import modem
-from . import network
-
 __all__ = [
     "at",
     "devkit",

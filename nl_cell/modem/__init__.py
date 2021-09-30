@@ -13,11 +13,6 @@ excluded from the preceding copyright notice of NimbeLink Corp.
 from .exception import Error
 from .exception import AtError
 
-from . import skywire
-from . import nano
-from . import src7611
-from . import tg1wwg
-
 __all__ = [
     "Error",
     "AtError",
